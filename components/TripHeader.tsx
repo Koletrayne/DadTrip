@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CountdownBadge } from "./CountdownBadge";
 import { StatusBadge } from "./StatusBadge";
 import { LevelBadge } from "./game/LevelBadge";
+import { EditTripButton } from "./EditTripModal";
 import type { Trip } from "@/lib/types";
 import { formatDateRange } from "@/lib/utils";
 import { ArrowLeft, MapPin, Share2 } from "lucide-react";
@@ -62,6 +63,7 @@ export function TripHeader({ trip }: { trip: Trip }) {
             </div>
             {trip.status !== "completed" && <CountdownBadge startDate={trip.startDate} />}
             <StatusBadge status={trip.status} />
+            <EditTripButton trip={trip} />
             <Button variant="outline" size="sm">
               <Share2 className="h-4 w-4" /> Invite
             </Button>

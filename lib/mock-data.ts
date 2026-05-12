@@ -384,6 +384,14 @@ export function addTrip(trip: Trip): void {
   saveDynamicTrips(trips);
 }
 
+export function updateTrip(id: string, updates: Partial<Omit<Trip, "id">>): boolean {
+  const trip = trips.find((t) => t.id === id);
+  if (!trip) return false;
+  Object.assign(trip, updates);
+  saveDynamicTrips(trips);
+  return true;
+}
+
 export function deleteTrip(id: string): boolean {
   const idx = trips.findIndex((t) => t.id === id);
   if (idx === -1) return false;

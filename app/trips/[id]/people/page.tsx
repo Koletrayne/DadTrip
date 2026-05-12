@@ -1,10 +1,8 @@
 import { notFound } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { PartyMemberCard } from "@/components/game/PartyMemberCard";
+import { InviteSection } from "@/components/InviteSection";
 import { getTrip, members as membersData } from "@/lib/mock-data";
-import { Copy, Mail, Shield, UserPlus } from "lucide-react";
+import { Shield, UserPlus } from "lucide-react";
 
 export default async function PartyPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -31,30 +29,7 @@ export default async function PartyPage({ params }: { params: Promise<{ id: stri
         </div>
       </div>
 
-      <Card>
-        <CardContent className="p-5 md:p-6">
-          <div className="grid md:grid-cols-2 gap-3 items-end">
-            <div>
-              <div className="arcade-font text-[10px] tracking-wider mb-1.5 text-cyan-300">RECRUIT A HERO BY EMAIL</div>
-              <div className="flex gap-2">
-                <Input placeholder="grandma@example.com" />
-                <Button>
-                  <Mail className="h-4 w-4" /> Invite
-                </Button>
-              </div>
-            </div>
-            <div>
-              <div className="arcade-font text-[10px] tracking-wider mb-1.5 text-cyan-300">OR SEND A QUEST SCROLL</div>
-              <div className="flex gap-2">
-                <Input readOnly value={`https://dadtrip.app/join/${id}`} className="font-mono text-xs" />
-                <Button variant="outline">
-                  <Copy className="h-4 w-4" /> Copy
-                </Button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <InviteSection tripId={id} />
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
         {peeps.map((m) => (
