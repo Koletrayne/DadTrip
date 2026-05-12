@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input, Label, Select, Textarea } from "@/components/ui/input";
@@ -37,7 +38,10 @@ export function EditTripButton({ trip }: { trip: Trip }) {
       <Button variant="outline" size="sm" onClick={() => setOpen(true)}>
         <Pencil className="h-4 w-4" /> Edit
       </Button>
-      {open && <EditTripModal trip={trip} onClose={() => setOpen(false)} />}
+      {open && createPortal(
+        <EditTripModal trip={trip} onClose={() => setOpen(false)} />,
+        document.body
+      )}
     </>
   );
 }
