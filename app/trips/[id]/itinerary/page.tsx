@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useTrip } from "../TripContext";
 import type { ItineraryItem } from "@/lib/types";
-import { CheckCircle2, Clock, MapPin, Plus, Sun, Sunset, Moon, NotebookPen, X } from "lucide-react";
+import { Check, CheckCircle2, Clock, MapPin, Pencil, Plus, Sun, Sunset, Moon, NotebookPen, Trash2, X } from "lucide-react";
 
 const slotMeta = {
   morning:   { label: "Morning",   icon: Sun,         bg: "bg-amber-500/10",   border: "border-amber-500/30",   accent: "text-amber-400",   chip: "bg-amber-500/20" },
@@ -86,18 +86,89 @@ function SlotAddForm({
   );
 }
 
+function SlotEditForm({
+  item,
+  slot,
+  onSave,
+  onCancel,
+}: {
+  item: ItineraryItem;
+  slot: SlotKey;
+  onSave: (updates: Partial<ItineraryItem>) => void;
+  onCancel: () => void;
+}) {
+  const meta = slotMeta[slot];
+
+  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = new FormData(e.currentTarget);
+    onSave({
+      title: (form.get("title") as string).trim(),
+      time: (form.get("time") as string) || undefined,
+      details: (form.get("details") as string).trim() || undefined,
+      location: (form.get("location") as string).trim() || undefined,
+      cost: form.get("cost") ? Number(form.get("cost")) : undefined,
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="rounded-lg bg-slate-800/80 border border-cyan-500/30 p-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className={`arcade-font text-[9px] tracking-widest ${meta.accent}`}>
+          EDITING
+        </span>
+        <button type="button" onClick={onCancel} className="text-slate-500 hover:text-slate-300">
+          <X className="h-3.5 w-3.5" />
+        </button>
+      </div>
+      <div className="grid grid-cols-[1fr_auto] gap-2">
+        <Input name="title" required defaultValue={item.title} className="text-sm" />
+        <Input name="time" type="time" defaultValue={item.time ?? ""} className="text-sm w-[7.5rem]" />
+      </div>
+      <Input name="details" defaultValue={item.details ?? ""} placeholder="Details (optional)" className="text-sm" />
+      <div className="grid grid-cols-2 gap-2">
+        <Input name="location" defaultValue={item.location ?? ""} placeholder="Location" className="text-sm" />
+        <Input name="cost" type="number" defaultValue={item.cost ?? ""} placeholder="Cost ($)" className="text-sm" />
+      </div>
+      <Button type="submit" size="sm" className="w-full">
+        <Check className="h-3.5 w-3.5" /> Save
+      </Button>
+    </form>
+  );
+}
+
 export default function ItineraryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const trip = useTrip();
   const days = eachDay(trip.startDate, trip.endDate);
   const [items, setItems] = useState<ItineraryItem[]>(itineraryData[id] ?? []);
   const [addingSlot, setAddingSlot] = useState<{ date: string; slot: SlotKey } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   function handleAdd(item: ItineraryItem) {
     setItems((prev) => [...prev, item]);
     if (!itineraryData[id]) itineraryData[id] = [];
     itineraryData[id].push(item);
     setAddingSlot(null);
+  }
+
+  function handleUpdate(itemId: string, updates: Partial<ItineraryItem>) {
+    setItems((prev) =>
+      prev.map((it) => (it.id === itemId ? { ...it, ...updates } : it))
+    );
+    if (itineraryData[id]) {
+      const target = itineraryData[id].find((it) => it.id === itemId);
+      if (target) Object.assign(target, updates);
+    }
+    setEditingId(null);
+  }
+
+  function handleDelete(itemId: string) {
+    setItems((prev) => prev.filter((it) => it.id !== itemId));
+    if (itineraryData[id]) {
+      const idx = itineraryData[id].findIndex((it) => it.id === itemId);
+      if (idx !== -1) itineraryData[id].splice(idx, 1);
+    }
   }
 
   return (
@@ -151,32 +222,56 @@ export default function ItineraryPage({ params }: { params: Promise<{ id: string
                           {slotItems.length === 0 && !isAdding && (
                             <div className="text-xs text-slate-500">Nothing planned.</div>
                           )}
-                          {slotItems.map((it) => (
-                            <div key={it.id} className="rounded-lg bg-slate-800/60 border border-slate-700/50 p-2.5">
-                              <div className="flex items-start justify-between gap-2">
-                                <div className="flex items-center gap-2">
-                                  {it.time && (
-                                    <span className="inline-flex items-center gap-1 text-orange-400 font-semibold text-xs drop-shadow-[0_0_6px_rgba(251,146,60,0.5)]">
-                                      <Clock className="h-3 w-3" />
-                                      {it.time}
-                                    </span>
+                          {slotItems.map((it) =>
+                            editingId === it.id ? (
+                              <SlotEditForm
+                                key={it.id}
+                                item={it}
+                                slot={slot}
+                                onSave={(updates) => handleUpdate(it.id, updates)}
+                                onCancel={() => setEditingId(null)}
+                              />
+                            ) : (
+                              <div key={it.id} className="group rounded-lg bg-slate-800/60 border border-slate-700/50 p-2.5">
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    {it.time && (
+                                      <span className="inline-flex items-center gap-1 text-orange-400 font-semibold text-xs drop-shadow-[0_0_6px_rgba(251,146,60,0.5)]">
+                                        <Clock className="h-3 w-3" />
+                                        {it.time}
+                                      </span>
+                                    )}
+                                    <span className="font-medium text-sm text-slate-200">{it.title}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    {it.isConfirmed && <Badge variant="success"><CheckCircle2 className="h-3 w-3" /> Confirmed</Badge>}
+                                    {it.isFlexible && <Badge variant="neutral">Flexible</Badge>}
+                                    <button
+                                      onClick={() => setEditingId(it.id)}
+                                      className="h-6 w-6 rounded-md flex items-center justify-center text-slate-600 opacity-0 group-hover:opacity-100 hover:text-cyan-300 hover:bg-cyan-500/10 transition-all"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDelete(it.id)}
+                                      className="h-6 w-6 rounded-md flex items-center justify-center text-slate-600 opacity-0 group-hover:opacity-100 hover:text-rose-400 hover:bg-rose-500/10 transition-all"
+                                      title="Delete"
+                                    >
+                                      <Trash2 className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                </div>
+                                {it.details && <div className="text-xs text-slate-400 mt-0.5">{it.details}</div>}
+                                <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
+                                  {it.location && (
+                                    <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {it.location}</span>
                                   )}
-                                  <span className="font-medium text-sm text-slate-200">{it.title}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  {it.isConfirmed && <Badge variant="success"><CheckCircle2 className="h-3 w-3" /> Confirmed</Badge>}
-                                  {it.isFlexible && <Badge variant="neutral">Flexible</Badge>}
+                                  {it.cost != null && <span>{currency(it.cost)}</span>}
                                 </div>
                               </div>
-                              {it.details && <div className="text-xs text-slate-400 mt-0.5">{it.details}</div>}
-                              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500">
-                                {it.location && (
-                                  <span className="inline-flex items-center gap-1"><MapPin className="h-3 w-3" /> {it.location}</span>
-                                )}
-                                {it.cost != null && <span>{currency(it.cost)}</span>}
-                              </div>
-                            </div>
-                          ))}
+                            )
+                          )}
                           {isAdding && (
                             <SlotAddForm
                               slot={slot}
