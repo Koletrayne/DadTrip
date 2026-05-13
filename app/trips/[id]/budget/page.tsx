@@ -2,13 +2,14 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { budget, getTrip, members as membersData } from "@/lib/mock-data";
+import { budget, members as membersData } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { currency } from "@/lib/utils";
 import { Coins, Plus, Sparkles, Wallet } from "lucide-react";
 
 export default async function BudgetPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
   const items = budget[id] ?? [];
   const peeps = membersData[id] ?? [];

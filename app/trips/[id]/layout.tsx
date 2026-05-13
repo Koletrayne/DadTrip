@@ -2,7 +2,7 @@ import { notFound } from "next/navigation";
 import { SiteHeader } from "@/components/SiteHeader";
 import { TripHeader } from "@/components/TripHeader";
 import { TripSidebar, TripBottomNav } from "@/components/TripNav";
-import { getTrip } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { TripProvider } from "./TripContext";
 
 export default async function TripLayout({
@@ -13,7 +13,7 @@ export default async function TripLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
 
   return (

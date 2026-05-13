@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { LevelBadge } from "@/components/game/LevelBadge";
 import { XPProgressBar } from "@/components/game/XPProgressBar";
 import { AchievementCard } from "@/components/game/AchievementCard";
-import { getTrip, getTripState } from "@/lib/mock-data";
+import { getTripState } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { computeAchievements, computeXp, levelFromXp } from "@/lib/game";
 import { Sparkles, Trophy } from "lucide-react";
 
@@ -13,7 +14,7 @@ export default async function AchievementsPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
 
   const state = getTripState(id);

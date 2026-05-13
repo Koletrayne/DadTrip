@@ -2,12 +2,13 @@ import { notFound } from "next/navigation";
 import { CalendarBoard } from "@/components/CalendarBoard";
 import { ExportTripButton } from "@/components/ExportTripButton";
 import { Button } from "@/components/ui/button";
-import { calendarEvents, getTrip, members } from "@/lib/mock-data";
+import { calendarEvents, members } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { Plus } from "lucide-react";
 
 export default async function CalendarPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
   const events = calendarEvents[id] ?? [];
   const peeps = members[id] ?? [];

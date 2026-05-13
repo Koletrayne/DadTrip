@@ -2,7 +2,8 @@ import { notFound } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getTrip, memories as memoriesData, members as membersData } from "@/lib/mock-data";
+import { memories as memoriesData, members as membersData } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { Avatar } from "@/components/Avatar";
 import { BookOpen, Camera, Quote, Sparkles, Upload } from "lucide-react";
 
@@ -15,7 +16,7 @@ const typeMeta = {
 
 export default async function MemoriesPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
   const peeps = membersData[id] ?? [];
   const memberById = Object.fromEntries(peeps.map((m) => [m.id, m]));

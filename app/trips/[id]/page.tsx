@@ -8,7 +8,8 @@ import { XPProgressBar } from "@/components/game/XPProgressBar";
 import { GameStatCard } from "@/components/game/GameStatCard";
 import { AchievementCard } from "@/components/game/AchievementCard";
 import { NextAchievementCard } from "@/components/game/NextAchievementCard";
-import { getTrip, getTripState } from "@/lib/mock-data";
+import { getTripState } from "@/lib/mock-data";
+import { loadTrip } from "@/lib/trip-loader";
 import { computeAchievements, computeXp, levelFromXp, nextAchievement } from "@/lib/game";
 import { currency, daysUntil, formatLongDate, formatTime } from "@/lib/utils";
 import {
@@ -27,7 +28,7 @@ import {
 
 export default async function TripOverview({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const trip = getTrip(id);
+  const trip = await loadTrip(id);
   if (!trip) notFound();
 
   const state = getTripState(id);

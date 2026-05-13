@@ -7,7 +7,6 @@ import { Input, Label, Select, Textarea } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
-import { createTrip } from "./actions";
 
 const TRIP_TYPES = [
   "Road Trip",
@@ -33,9 +32,13 @@ function slugify(text: string): string {
 export default function NewTripPage() {
   const [emoji, setEmoji] = useState("🏞️");
   const [privacy, setPrivacy] = useState("invite");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    setError(null);
+    setLoading(true);
     const form = new FormData(e.currentTarget);
 
     const title = (form.get("title") as string).trim();
@@ -48,19 +51,31 @@ export default function NewTripPage() {
 
     const id = slugify(title) + "-" + Date.now().toString(36);
 
-    await createTrip({
-      id,
-      title,
-      destination,
-      startDate,
-      endDate,
-      tripType,
-      description: description || undefined,
-      estimatedBudget: budgetVal ? Number(budgetVal) : undefined,
-      coverEmoji: emoji,
-      accent: "forest",
-      status: "planning",
-    });
+    try {
+      const res = await fetch("/api/trips", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id,
+          title,
+          destination,
+          startDate,
+          endDate,
+          tripType,
+          description: description || undefined,
+          estimatedBudget: budgetVal ? Number(budgetVal) : undefined,
+          coverEmoji: emoji,
+          accent: "forest",
+          status: "planning",
+        }),
+      });
+      if (!res.ok) throw new Error("Server error: " + res.status);
+      const { id: tripId } = await res.json();
+      window.location.href = `/trips/${tripId}`;
+    } catch (err) {
+      setLoading(false);
+      setError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+    }
   }
 
   return (
@@ -145,11 +160,16 @@ export default function NewTripPage() {
                 </div>
               </Field>
 
+              {error && (
+                <p className="text-sm text-red-400 text-right">{error}</p>
+              )}
               <div className="flex items-center justify-end gap-2 pt-2">
                 <Link href="/dashboard">
-                  <Button type="button" variant="outline">Cancel</Button>
+                  <Button type="button" variant="outline" disabled={loading}>Cancel</Button>
                 </Link>
-                <Button type="submit">Create trip</Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "Creating…" : "Create trip"}
+                </Button>
               </div>
             </form>
           </CardContent>

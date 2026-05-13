@@ -1,21 +1,23 @@
-import { trips, getTripState } from "@/lib/mock-data";
+import { getTripState } from "@/lib/mock-data";
+import { loadAllTrips } from "@/lib/trip-loader";
 import { computeXp, levelFromXp } from "@/lib/game";
 import { DashboardClient } from "./DashboardClient";
 
 export const dynamic = "force-dynamic";
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  const allTrips = await loadAllTrips();
   const today = new Date().toISOString().slice(0, 10);
-  const upcoming = trips
+  const upcoming = allTrips
     .filter((t) => t.endDate >= today)
     .sort((a, b) => a.startDate.localeCompare(b.startDate));
-  const highScoreTrip = upcoming[0] ?? trips[0];
+  const highScoreTrip = upcoming[0] ?? allTrips[0];
 
   const sorted = [
-    ...trips
+    ...allTrips
       .filter((t) => t.status !== "completed")
       .sort((a, b) => a.startDate.localeCompare(b.startDate)),
-    ...trips.filter((t) => t.status === "completed"),
+    ...allTrips.filter((t) => t.status === "completed"),
   ];
 
   const slots = sorted.map((trip) => {
