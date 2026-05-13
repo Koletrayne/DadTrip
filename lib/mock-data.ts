@@ -71,39 +71,13 @@ const defaultTrips: Trip[] = [
 const DEFAULT_IDS = new Set(defaultTrips.map((t) => t.id));
 
 function loadDynamicTrips(): Trip[] {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("fs");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require("path");
-    const filePath = path.join(process.cwd(), "data", "dynamic-trips.json");
-    if (fs.existsSync(filePath)) {
-      return JSON.parse(fs.readFileSync(filePath, "utf-8"));
-    }
-  } catch {
-    // Client-side or file missing — fall through
-  }
   return [];
 }
 
-function saveDynamicTrips(allTrips: Trip[]) {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const fs = require("fs");
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const path = require("path");
-    const dir = path.join(process.cwd(), "data");
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    const dynamic = allTrips.filter((t) => !DEFAULT_IDS.has(t.id));
-    fs.writeFileSync(
-      path.join(dir, "dynamic-trips.json"),
-      JSON.stringify(dynamic, null, 2)
-    );
-  } catch {
-    // Client-side — ignore
-  }
+function saveDynamicTrips(_allTrips: Trip[]) {
+  // Disabled for Vercel deployment.
+  // Trip creation is now handled through Supabase.
 }
-
 if (!globalStore.__dadtrip_trips) {
   const persisted = loadDynamicTrips();
   globalStore.__dadtrip_trips = [...defaultTrips, ...persisted];
