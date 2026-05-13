@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/input";
@@ -11,17 +11,35 @@ import { QUEST_XP_BY_PRIORITY } from "@/lib/game";
 import { useTrip } from "../TripContext";
 import { Plus, Scroll, Sparkles, X } from "lucide-react";
 
+function loadTasks(tripId: string): Task[] {
+  try {
+    const stored = localStorage.getItem(`tasks-${tripId}`);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return tasksData[tripId] ?? [];
+}
+
+function saveTasks(tripId: string, items: Task[]) {
+  try { localStorage.setItem(`tasks-${tripId}`, JSON.stringify(items)); } catch {}
+}
+
 export default function QuestsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const trip = useTrip();
   const peeps = membersData[id] ?? [];
   const memberById = Object.fromEntries(peeps.map((m) => [m.id, m]));
 
-  if (!tasksData[id]) tasksData[id] = [];
-  const [tasks, setTasks] = useState<Task[]>(tasksData[id]);
+  const [tasks, setTasks] = useState<Task[]>(() => tasksData[id] ?? []);
   const [filterPerson, setFilterPerson] = useState<string>("all");
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [showForm, setShowForm] = useState(false);
+
+  useEffect(() => { setTasks(loadTasks(id)); }, [id]);
+
+  const persist = useCallback((next: Task[]) => {
+    setTasks(next);
+    saveTasks(id, next);
+  }, [id]);
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
@@ -43,14 +61,13 @@ export default function QuestsPage({ params }: { params: Promise<{ id: string }>
   const cleared = tasks.filter((t) => t.status === "done").length;
 
   function cycleStatus(taskId: string) {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t;
-        const next: TaskStatus =
-          t.status === "not_started" ? "in_progress" : t.status === "in_progress" ? "done" : "not_started";
-        return { ...t, status: next };
-      })
-    );
+    const next = tasks.map((t) => {
+      if (t.id !== taskId) return t;
+      const s: TaskStatus =
+        t.status === "not_started" ? "in_progress" : t.status === "in_progress" ? "done" : "not_started";
+      return { ...t, status: s };
+    });
+    persist(next);
   }
 
   function handleAdd(e: React.FormEvent<HTMLFormElement>) {
@@ -69,8 +86,7 @@ export default function QuestsPage({ params }: { params: Promise<{ id: string }>
       status: "not_started",
     };
 
-    tasksData[id].push(newTask);
-    setTasks([...tasksData[id]]);
+    persist([...tasks, newTask]);
     setShowForm(false);
   }
 

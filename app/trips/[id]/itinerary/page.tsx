@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useCallback, useEffect, useState } from "react";
 import { itinerary as itineraryData } from "@/lib/mock-data";
 import { eachDay, formatLongDate, currency } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
@@ -137,38 +137,49 @@ function SlotEditForm({
   );
 }
 
+function loadItems(tripId: string): ItineraryItem[] {
+  try {
+    const stored = localStorage.getItem(`itinerary-${tripId}`);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return itineraryData[tripId] ?? [];
+}
+
+function saveItems(tripId: string, items: ItineraryItem[]) {
+  try {
+    localStorage.setItem(`itinerary-${tripId}`, JSON.stringify(items));
+  } catch {}
+}
+
 export default function ItineraryPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const trip = useTrip();
   const days = eachDay(trip.startDate, trip.endDate);
-  const [items, setItems] = useState<ItineraryItem[]>(itineraryData[id] ?? []);
+  const [items, setItems] = useState<ItineraryItem[]>(() => itineraryData[id] ?? []);
   const [addingSlot, setAddingSlot] = useState<{ date: string; slot: SlotKey } | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
 
+  useEffect(() => {
+    setItems(loadItems(id));
+  }, [id]);
+
+  const persist = useCallback((next: ItineraryItem[]) => {
+    setItems(next);
+    saveItems(id, next);
+  }, [id]);
+
   function handleAdd(item: ItineraryItem) {
-    setItems((prev) => [...prev, item]);
-    if (!itineraryData[id]) itineraryData[id] = [];
-    itineraryData[id].push(item);
+    persist([...items, item]);
     setAddingSlot(null);
   }
 
   function handleUpdate(itemId: string, updates: Partial<ItineraryItem>) {
-    setItems((prev) =>
-      prev.map((it) => (it.id === itemId ? { ...it, ...updates } : it))
-    );
-    if (itineraryData[id]) {
-      const target = itineraryData[id].find((it) => it.id === itemId);
-      if (target) Object.assign(target, updates);
-    }
+    persist(items.map((it) => (it.id === itemId ? { ...it, ...updates } : it)));
     setEditingId(null);
   }
 
   function handleDelete(itemId: string) {
-    setItems((prev) => prev.filter((it) => it.id !== itemId));
-    if (itineraryData[id]) {
-      const idx = itineraryData[id].findIndex((it) => it.id === itemId);
-      if (idx !== -1) itineraryData[id].splice(idx, 1);
-    }
+    persist(items.filter((it) => it.id !== itemId));
   }
 
   return (

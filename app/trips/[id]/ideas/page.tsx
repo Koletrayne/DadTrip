@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { use } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,18 @@ const CATEGORIES: { value: IdeaCategory; label: string }[] = [
   { value: "rainy_day", label: "Rainy day" },
   { value: "other", label: "Other" },
 ];
+
+function loadIdeas(tripId: string): Idea[] {
+  try {
+    const stored = localStorage.getItem(`ideas-${tripId}`);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return ideasData[tripId] ?? [];
+}
+
+function saveIdeas(tripId: string, items: Idea[]) {
+  try { localStorage.setItem(`ideas-${tripId}`, JSON.stringify(items)); } catch {}
+}
 
 function scoreIdea(votes: Idea["votes"]): number {
   return votes.reduce(
@@ -158,8 +170,14 @@ export default function IdeasPage({ params }: { params: Promise<{ id: string }> 
   const trip = useTrip();
   const members = membersData[id] ?? [];
 
-  if (!ideasData[id]) ideasData[id] = [];
-  const [ideas, setIdeas] = useState<Idea[]>(ideasData[id]);
+  const [ideas, setIdeas] = useState<Idea[]>(() => ideasData[id] ?? []);
+
+  useEffect(() => { setIdeas(loadIdeas(id)); }, [id]);
+
+  const persist = useCallback((next: Idea[]) => {
+    setIdeas(next);
+    saveIdeas(id, next);
+  }, [id]);
 
   const [sort, setSort] = useState("most_votes");
   const [showForm, setShowForm] = useState(false);
@@ -214,16 +232,13 @@ export default function IdeasPage({ params }: { params: Promise<{ id: string }> 
       votes: [],
     };
 
-    ideasData[id].push(newIdea);
-    setIdeas([...ideasData[id]]);
+    persist([...ideas, newIdea]);
     setShowForm(false);
     setCategory("food");
   }
 
   function handleVoteChange(ideaId: string, votes: Idea["votes"]) {
-    const idx = ideasData[id].findIndex((i) => i.id === ideaId);
-    if (idx !== -1) ideasData[id][idx].votes = votes;
-    setIdeas([...ideasData[id]]);
+    persist(ideas.map((i) => (i.id === ideaId ? { ...i, votes } : i)));
   }
 
   return (

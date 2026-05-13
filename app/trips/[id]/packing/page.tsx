@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useMemo, useState } from "react";
+import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar } from "@/components/Avatar";
@@ -9,6 +9,18 @@ import type { PackingItem } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useTrip } from "../TripContext";
 import { Backpack, Check, Plus, Trash2 } from "lucide-react";
+
+function loadPacking(tripId: string): PackingItem[] {
+  try {
+    const stored = localStorage.getItem(`packing-${tripId}`);
+    if (stored) return JSON.parse(stored);
+  } catch {}
+  return packingData[tripId] ?? [];
+}
+
+function savePacking(tripId: string, items: PackingItem[]) {
+  try { localStorage.setItem(`packing-${tripId}`, JSON.stringify(items)); } catch {}
+}
 
 const suggestedTemplates: Record<string, string[]> = {
   "National Park": ["Hiking shoes", "Sunscreen", "Water bottle", "Hat", "Backpack", "Trail snacks", "Park pass"],
@@ -21,7 +33,14 @@ export default function PackingPage({ params }: { params: Promise<{ id: string }
   const trip = useTrip();
   const peeps = membersData[id] ?? [];
   const memberById = Object.fromEntries(peeps.map((m) => [m.id, m]));
-  const [items, setItems] = useState<PackingItem[]>(packingData[id] ?? []);
+  const [items, setItems] = useState<PackingItem[]>(() => packingData[id] ?? []);
+
+  useEffect(() => { setItems(loadPacking(id)); }, [id]);
+
+  const persist = useCallback((next: PackingItem[]) => {
+    setItems(next);
+    savePacking(id, next);
+  }, [id]);
 
   const grouped = useMemo(() => {
     const map: Record<string, PackingItem[]> = {};
@@ -32,15 +51,11 @@ export default function PackingPage({ params }: { params: Promise<{ id: string }
   const packedCount = items.filter((i) => i.isPacked).length;
 
   function toggle(itemId: string) {
-    setItems((prev) => prev.map((p) => (p.id === itemId ? { ...p, isPacked: !p.isPacked } : p)));
+    persist(items.map((p) => (p.id === itemId ? { ...p, isPacked: !p.isPacked } : p)));
   }
 
   function remove(itemId: string) {
-    setItems((prev) => prev.filter((p) => p.id !== itemId));
-    if (packingData[id]) {
-      const idx = packingData[id].findIndex((p) => p.id === itemId);
-      if (idx !== -1) packingData[id].splice(idx, 1);
-    }
+    persist(items.filter((p) => p.id !== itemId));
   }
 
   const suggestions = suggestedTemplates[trip.tripType] ?? suggestedTemplates["Road Trip"];
@@ -116,8 +131,8 @@ export default function PackingPage({ params }: { params: Promise<{ id: string }
               <button
                 key={s}
                 onClick={() =>
-                  setItems((prev) => [
-                    ...prev,
+                  persist([
+                    ...items,
                     { id: `p-${Date.now()}-${s}`, title: s, category: "Miscellaneous", isPacked: false },
                   ])
                 }
